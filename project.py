@@ -1,3 +1,38 @@
+"""Практическое задание "Анализатор прайс-листов."
+Описание и требования:
+В папке находятся несколько файлов, содержащих прайс-листы от разных поставщиков.
+Количество и название файлов заранее неизвестно, однако точно известно, что в названии файлов прайс-листов есть слово
+ "price".
+Файлы, не содержащие слово "price" следует игнорировать.
+Формат файлов: данные, разделенные точкой с запятой.
+Порядок колонок в файле заранее неизвестен, но известно, что столбец с названием товара называется одним из вариантов:
+ "название", "продукт", "товар", "наименование".
+
+Столбец с ценой может называться "цена" или "розница".
+Столбец с весом имеет название "фасовка", "масса" или "вес" и всегда указывается в килограммах.
+Остальные столбцы игнорировать.
+Особенности реализации:
+Программа должна загрузить данные из всех прайс-листов и предоставить интерфейс для поиска товара по фрагменту названия
+ с сорторовкой по цене за килогорамм.
+Интерфейс для поиска реализовать через консоль, циклически получая информацию от пользователя.
+Если введено слово "exit", то цикл обмена с пользователем завершается, программа выводит сообщение о том,
+что работа закончена и завершает свою работу. В противном случае введенный текст считается текстом для поиска.
+Программа должна вывести список найденных позиций в виде таблицы:
+№   Наименование               цена вес   файл   цена за кг.
+1   филе гигантского кальмара         617  1 price_0.csv 617.0
+2   филе гигантского кальмара         639  1 price_4.csv 639.0
+3   филе гигантского кальмара         639  1 price_6.csv 639.0
+4   филе гигантского кальмара         683  1 price_1.csv 683.0
+5   филе гигантского кальмара         1381  2 price_5.csv 690.5
+6   кальмар тушка                   3420  3 price_3.csv 1140.0
+7   кальмар тушка                   4756  4 price_0.csv 1189.0
+
+Список должен быть отсортирован по возрастанию стоимости за килограмм.
+
+Предусмотреть вывод массива данных в текстовый файл в формате html."""
+
+"""Решение"""
+
 import os
 import csv
 import re
@@ -9,14 +44,20 @@ class PriceMachine:
     def __init__(self):
         self.data = []
 
-    def load_prices(self, directory):
+    def load_prices(self, directory):  # Функция сканирует папку и загружает данные
 
-        for filename in os.listdir(directory):
+        for filename in os.listdir(directory):  # перебираются все файлы в указанной папке.
+            # Если файл имеет расширение .csv и содержит столбец с ценой, функция открывает файл для чтения,
+            # использует библиотеку csv для преобразования данных в словарь и обрабатывает каждую строку файла.
+
             if filename.endswith('.csv') and 'price' in filename.lower():
                 with open(os.path.join(directory, filename), 'r', newline='', encoding='utf-8') as file:
                     reader = csv.DictReader(file)
                     for row in reader:
-                        for column in row:
+                        for column in row:  # перебирает каждую строку словаря и проверяет условия для извлечения
+                            # информации о товаре, цене, весе и расчёте цены за единицу веса. Если товар найден,
+                            # информация добавляется в список self.data.
+
                             if re.search(r'(товар|название|наименование|продукт)', column, re.IGNORECASE):
                                 product = row[column].strip()
                             elif re.search(r'(розница|цена)', column, re.IGNORECASE):
@@ -26,9 +67,11 @@ class PriceMachine:
                         if product:
                             self.data.append([filename, product, price, weight, round(price / weight, 2)])
 
-    def export_to_html(self, sorted_result):
+    def export_to_html(self, sorted_result):  # принимает отсортированный список данных sorted_result
+        # и создаёт HTML-файл с таблицей, содержащей эти данные.
 
-        result = '''
+        result = '''    
+         
                 <!DOCTYPE html>
                 <html>
                 <head>
@@ -47,7 +90,10 @@ class PriceMachine:
                     </tr>
                 '''
         index = 0
-        for i in sorted_result:
+        for i in sorted_result:  # Цикл перебирает элементы списка sorted_result. Для каждого элемента списка создаётся
+            # строка таблицы с данными. Строка содержит теги <tr>, <td>,
+            # в которые помещаются данные из списка sorted_result.
+
             index += 1
             result += f'''
                 <tr>
@@ -59,40 +105,52 @@ class PriceMachine:
                             <td>{i[4]}</td>                        
                         </tr>
                     '''
-        result += '''
+        result += '''   
+        
         </table>
         </body>
         </html>
         '''
-        with open('Out data.html', 'w', encoding='utf8') as file:
-            file.write(result)
+        with open('Out data.html', 'w', encoding='utf8') as file: # При записи файла декодирует текст в "utf8"
+            file.write(result)  # строка result записывается в файл Out data.html с помощью метода write объекта file.
 
         headers = ['№', 'Наименование', 'Цена', 'Вес', 'Цена\кг.', 'Файл']
         results_num = [[i + 1] + res[1:] + [res[0]] for i, res in enumerate(sorted_result)]
-        print(tabulate.tabulate(results_num, headers=headers, tablefmt='simple'))
+        print(tabulate.tabulate(results_num, headers=headers, tablefmt='simple'))  # создаем таблицу, где каждая строка
+        # соответствует одному элементу из sorted_result, а столбцы соответствуют заголовкам из списка headers.
 
-    def search_engine(self, input_text):
+    def search_engine(self, input_text):  # Функция принимает на вход текст input_text и выполняет поиск
+        # по полю row1 в списке self.data. Если текст найден, соответствующая строка добавляется в список results.
 
         results = []
         for row in self.data:
             if re.search(input_text, row[1], re.IGNORECASE):
                 results.append(row)
-        sorted_results = sorted(results, key=lambda x: x[4])
-        self.export_to_html(sorted_results)
+        sorted_results = sorted(results, key=lambda x: x[4])  # results сортируется по полю x4 и передаётся в метод
+        self.export_to_html(sorted_results)  # export_to_html для экспорта в HTML.
 
-    def user_input(self, file_path, param=None):
+    def user_input(self, file_path, param=None):  # Функция принимает два аргумента: file_path и param
+        # (по умолчанию None)., используя метод load_prices.
 
-        self.load_prices(file_path)
+        # Если пользователь вводит “exit” или “выход”, то выводится сообщение о завершении поиска и происходит выход
+        # из цикла. В противном случае выполняется метод search_engine с переданным поисковым запросом.
+
+        self.load_prices(file_path)  # загружает цены из файла, указанного в file_path
 
         while True:
-            find_text_value = input('Поиск (или "выход") ?: \n')
-            if find_text_value.lower() == 'exit' or find_text_value.lower() == 'выход':
+            find_text_value = input('Поиск (или "выход") ?: \n')  # Поисковый запрос, для получения списка позиций,
+            # названий продукта.
+
+            if find_text_value.lower() == 'exit' or find_text_value.lower() == 'выход':  # Если пользователь вводит
+                # “exit” или “выход”, то выводится сообщение "Поиск завершен".
                 print('Поиск завершен')
                 break
-            self.search_engine(find_text_value)
+            self.search_engine(find_text_value)  # В противном случае выполняется метод search_engine с переданным
+            # поисковым запросом.
 
 
-if __name__ == '__main__':
-    pm = PriceMachine()
-    local_directory = os.path.dirname(os.path.abspath(__file__))
-    pm.user_input(local_directory)
+if __name__ == '__main__':  # Проверка условий, что-бы избежать выполнения кода при импорте модуля как библиотеки.
+    pm = PriceMachine()  # Cоздаётся экземпляр класса PriceMachine и присваивается переменной pm.
+    local_directory = os.path.dirname(os.path.abspath(__file__))  # определяется директория и абсолютный путь к файлу
+    pm.user_input(
+        local_directory)  # Метод для запроса данных у пользователя, используя информацию в локальном каталоге.
